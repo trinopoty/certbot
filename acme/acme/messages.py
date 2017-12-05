@@ -337,13 +337,12 @@ class ChallengeBody(ResourceBody):
                        omitempty=True, default=None)
 
     def __init__(self, **kwargs):
-        new_kwargs = {}
-        for k, v in kwargs.items():
-            if k in ('uri', 'url',):
-                k = '_' + k
-            new_kwargs[k] = v
+        kwargs = dict((self._internal_name(k), v) for k, v in kwargs.items())
         # pylint: disable=star-args
-        super(ChallengeBody, self).__init__(**new_kwargs)
+        super(ChallengeBody, self).__init__(**kwargs)
+
+    def encode(self, name):
+        return super(ChallengeBody, self).encode(self._internal_name(name))
 
     def to_partial_json(self):
         jobj = super(ChallengeBody, self).to_partial_json()
@@ -358,11 +357,23 @@ class ChallengeBody(ResourceBody):
 
     @property
     def uri(self):
-        """The URL of this challenge."""
+        """The URI or URL of this challenge."""
         return self._url or self._uri
+
+    @property
+    def url(self):
+        """The URL of this challenge."""
+        return self._url
 
     def __getattr__(self, name):
         return getattr(self.chall, name)
+
+    def __iter__(self):
+        for name in super(ChallengeBody, self).__iter__():
+            yield name[1:] if name in ('_uri', '_url',) else name
+
+    def _internal_name(self, name):
+        return '_' + name if name in ('uri', 'url',) else name
 
 
 class ChallengeResource(Resource):
